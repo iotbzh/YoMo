@@ -1,0 +1,15 @@
+Repo:
+    Name:           qemux86-64
+    Baseurl:        http://repo.iot.bzh/repo
+    TargetRepo:     aarch64-agl-linux,
+    HostRepo:       x86_64-aglsdk-linux
+
+SDK_init_conf:
+    TUNE_PKGARCH:   "x86_64"
+    TARGET_VENDOR:  "-agl"
+    SDK_ARCH:       "x86_64"
+    SDK_VENDOR:     "-aglsdk"
+    SDK_VERSION:    "4.90.0"
+    SDK_OS:         "linux"
+    DISTRO:         "poky-agl"
+    MACHINE:        "qemux86-64"

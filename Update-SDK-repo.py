@@ -3,6 +3,8 @@ from __future__ import print_function
 import argparse
 import os
 import shutil
+import subprocess
+import shlex
 
 global VERBOSE
 VERBOSE=False
@@ -20,10 +22,9 @@ def updateRpmFile( srcFile, dstFile):
 def syncRpmFile(srcArchDir, destArchDir):
     listOldRpm=os.listdir( destArchDir)
     listNewRpm=os.listdir( srcArchDir)
-    print("VERBOSE %s" % VERBOSE)
     for oldRpm in listOldRpm:
         if oldRpm not in listNewRpm:
-            rmFile=os.path.join(destArchDir, dirToSync)
+            rmFile=os.path.join(destArchDir, oldRpm)
             print("The file %s is a old rpm, need to be remove." % (rmFile))
             os.unlink(rmFile)
             
@@ -48,6 +49,16 @@ def syncRepositoryByArch(inputDir, outputDir, dirToSync):
     syncRpmFile(os.path.join(inputDir, dirToSync), destArchDir)
 
 
+def createAglRepo( destDir):
+    cmd_repo="createrepo %s" % (destDir)
+    args = shlex.split(cmd_repo)
+    subRes=subprocess.check_output(args)
+
+def createAglRepos(destDir):
+    listDirRepo = os.listdir( destDir)
+    for dirRepo in listDirRepo:
+        createAglRepo( os.path.join( destDir, dirRepo))
+
 def syncRepository(inputDir, outputDir, reponame):
     checkDir(inputDir)
     checkDir(outputDir)
@@ -58,6 +69,8 @@ def syncRepository(inputDir, outputDir, reponame):
     listDirToSync=os.listdir( inputDir)
     for dirToSync in listDirToSync:
         syncRepositoryByArch(inputDir, destDir,dirToSync)
+        
+    createAglRepos(destDir)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -81,7 +94,6 @@ def main():
     if args.verbose:
         global VERBOSE
         VERBOSE=True
-    print("VERBOSE %s" % VERBOSE)
     syncRepository(args.input, args.output, args.reponame)
 
 if __name__ == '__main__':
