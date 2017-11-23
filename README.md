@@ -18,7 +18,7 @@ bitbake AGL-SDK-bootstrap
 cp ${WORK_DIR}/build_m3ulcb/tmp/deploy/sdk/x86_64-AGL-SDK-bootstrap-4.90.0+snapshot-*.sh ./
 ```
 
-ou
+or
 
 ```bash
 wget -O x86_64-AGL-SDK-bootstrap-4.90.0+snapshot.sh http://repo.iot.bzh/SDK-bootstrap/latest/x86_64-AGL-SDK-bootstrap-4.90.0+snapshot.sh
