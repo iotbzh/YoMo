@@ -1,0 +1,77 @@
+From a26a75f5f4f98fa6b4defb294315224e722326e4 Mon Sep 17 00:00:00 2001
+From: Ronan Le Martret <ronan.lemartret@iot.bzh>
+Date: Fri, 29 Sep 2017 16:23:32 +0200
+Subject: [PATCH] Remove pre/post install script for sdk
+
+Signed-off-by: Ronan Le Martret <ronan.lemartret@iot.bzh>
+---
+ lib/psm.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/lib/psm.c b/lib/psm.c
+index 341441b45..fbb45734f 100644
+--- a/lib/psm.c
++++ b/lib/psm.c
+@@ -661,12 +661,12 @@ static rpmRC rpmPackageInstall(rpmts ts, rpmpsm psm)
+ 	    rc = runImmedTriggers(psm, RPMSENSE_TRIGGERPREIN);
+ 	    if (rc) break;
+ 	}
+-
++/* No pre install script for AGL SDK
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPRE)) {
+ 	    rc = runInstScript(psm, RPMTAG_PREIN);
+ 	    if (rc) break;
+ 	}
+-
++*/
+ 	rc = rpmpsmUnpack(psm);
+ 	if (rc) break;
+ 
+@@ -694,12 +694,12 @@ static rpmRC rpmPackageInstall(rpmts ts, rpmpsm psm)
+ 				    RPMSCRIPT_FILETRIGGER, 1);
+ 	    if (rc) break;
+ 	}
+-
++/*No post install script for AGL SDK
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPOST)) {
+ 	    rc = runInstScript(psm, RPMTAG_POSTIN);
+ 	    if (rc) break;
+ 	}
+-
++*/
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERIN)) {
+ 	    /* Run triggers in other package(s) this package sets off. */
+ 	    rc = runTriggers(psm, RPMSENSE_TRIGGERIN);
+@@ -756,12 +756,12 @@ static rpmRC rpmPackageErase(rpmts ts, rpmpsm psm)
+ 	    rc = runTriggers(psm, RPMSENSE_TRIGGERUN);
+ 	    if (rc) break;
+ 	}
+-
++/* No pre uninstall script for AGL SDK
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPREUN)) {
+ 	    rc = runInstScript(psm, RPMTAG_PREUN);
+ 	    if (rc) break;
+ 	}
+-
++*/
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERUN)) {
+ 	    /* Run file triggers in this package other package(s) set off. */
+ 	    rc = runImmedFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERUN,
+@@ -782,12 +782,12 @@ static rpmRC rpmPackageErase(rpmts ts, rpmpsm psm)
+ 	    rc = runFileTriggers(psm->ts, psm->te, RPMSENSE_TRIGGERPOSTUN,
+ 				RPMSCRIPT_FILETRIGGER, 1);
+ 	}
+-
++/* No post uninstall script for AGL SDK
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPOSTUN)) {
+ 	    rc = runInstScript(psm, RPMTAG_POSTUN);
+ 	    if (rc) break;
+ 	}
+-
++*/
+ 	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERPOSTUN)) {
+ 	    /* Run triggers in other package(s) this package sets off. */
+ 	    rc = runTriggers(psm, RPMSENSE_TRIGGERPOSTUN);
+-- 
+2.12.0
+
