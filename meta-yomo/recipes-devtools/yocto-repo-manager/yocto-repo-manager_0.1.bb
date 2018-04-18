@@ -1,4 +1,4 @@
-SUMMARY = "sdk repo manager"
+SUMMARY = "Yocto repo manager"
 
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384361b4de20420"
@@ -16,12 +16,7 @@ S = "${WORKDIR}"
 
 do_install() {
     mkdir -p ${D}${bindir}
-
-    #Init SDK tool
-    cp ${S}/update-sdk-repo.py ${D}${bindir}/update-sdk-repo
-
+    cp ${S}/repo-manager.py ${D}${bindir}/repo-manager
 }
 
-
-FILES_${PN} += "${bindir}/* \
-               "
+FILES_${PN} += "${bindir}/repo-manager"
