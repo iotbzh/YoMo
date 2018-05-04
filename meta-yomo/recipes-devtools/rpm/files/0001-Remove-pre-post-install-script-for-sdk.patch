@@ -17,7 +17,7 @@ index 341441b45..fbb45734f 100644
  	    if (rc) break;
  	}
 -
-+/* No pre install script for AGL SDK
++/* No pre install script for SDK
  	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPRE)) {
  	    rc = runInstScript(psm, RPMTAG_PREIN);
  	    if (rc) break;
@@ -26,13 +26,13 @@ index 341441b45..fbb45734f 100644
 +*/
  	rc = rpmpsmUnpack(psm);
  	if (rc) break;
- 
+
 @@ -694,12 +694,12 @@ static rpmRC rpmPackageInstall(rpmts ts, rpmpsm psm)
  				    RPMSCRIPT_FILETRIGGER, 1);
  	    if (rc) break;
  	}
 -
-+/*No post install script for AGL SDK
++/*No post install script for SDK
  	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPOST)) {
  	    rc = runInstScript(psm, RPMTAG_POSTIN);
  	    if (rc) break;
@@ -47,7 +47,7 @@ index 341441b45..fbb45734f 100644
  	    if (rc) break;
  	}
 -
-+/* No pre uninstall script for AGL SDK
++/* No pre uninstall script for SDK
  	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPREUN)) {
  	    rc = runInstScript(psm, RPMTAG_PREUN);
  	    if (rc) break;
@@ -62,7 +62,7 @@ index 341441b45..fbb45734f 100644
  				RPMSCRIPT_FILETRIGGER, 1);
  	}
 -
-+/* No post uninstall script for AGL SDK
++/* No post uninstall script for SDK
  	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOPOSTUN)) {
  	    rc = runInstScript(psm, RPMTAG_POSTUN);
  	    if (rc) break;
@@ -72,6 +72,6 @@ index 341441b45..fbb45734f 100644
  	if (!(rpmtsFlags(ts) & RPMTRANS_FLAG_NOTRIGGERPOSTUN)) {
  	    /* Run triggers in other package(s) this package sets off. */
  	    rc = runTriggers(psm, RPMSENSE_TRIGGERPOSTUN);
--- 
+--
 2.12.0
 

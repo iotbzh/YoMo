@@ -1,0 +1,34 @@
+From 7968fcaa7f229c84895fef35650a6b802410068a Mon Sep 17 00:00:00 2001
+From: Ronan Le Martret <ronan.lemartret@iot.bzh>
+Date: Fri, 27 Apr 2018 12:24:49 +0200
+Subject: [PATCH] Fix path install for SDK package installation
+
+ * If you install packages SDK (and so use the rpm option
+    --root), rpm will remove already created path, with the
+   wrong ower, we don't want that for the SDK installation.
+
+Signed-off-by: Ronan Le Martret <ronan.lemartret@iot.bzh>
+---
+ lib/fsm.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/lib/fsm.c b/lib/fsm.c
+index b88bf1531..5079fba3d 100644
+--- a/lib/fsm.c
++++ b/lib/fsm.c
+@@ -683,9 +683,9 @@ static int fsmVerify(const char *path, rpmfi fi, const struct stat *fsb)
+             if (rc == RPMERR_ENOENT) rc = 0;
+             if (rc) return rc;
+             errno = saveerrno;
+-	    /* Only permit directory symlinks by target owner and root */
+-            if (S_ISDIR(dsb.st_mode) && (luid == 0 || luid == fsb->st_uid))
+-		    return 0;
++            /* For a SDK , we don't check the luid of the file */
++            if (S_ISDIR(dsb.st_mode))
++	        return 0;
+         }
+     } else if (S_ISLNK(mode)) {
+         if (S_ISLNK(dsb.st_mode)) {
+-- 
+2.11.0
+

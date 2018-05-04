@@ -192,7 +192,7 @@ class RepositoriesSynchronizer:
         #The rpm files are store two level after the input dir directory
         for archDir in listArchDir:
             #We need to separate cross compile packages and SDK packages
-            if "nativesdk" in archDir:
+            if "sdk" in archDir:
                 repoName="nativesdk"
             else:
                 repoName="runtime"
@@ -360,7 +360,7 @@ def main():
     parser.add_argument("-a", "--output-auxilaire", help="yocto repository auxiliary destination", action='append')
     parser.add_argument("-l", "--lock-output-auxilaire", help="Do not publish rpm to auxilaire Repositories", action='store_true')
     parser.add_argument("-m", "--remove-unused", help="remove unsed rpm during update", action='store_false')
-    parser.add_argument("-r", "--reponame", help="AGL repository destination")
+    parser.add_argument("-r", "--reponame", help="repository destination")
 
     args = parser.parse_args()
 

@@ -17,7 +17,6 @@ bitbake yocto-repo-manager-native -c addto_recipe_sysroot
 
 ## Test
 
-```
+```bash
 oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ~/public_html/ -r testRepository -v
-
 ```

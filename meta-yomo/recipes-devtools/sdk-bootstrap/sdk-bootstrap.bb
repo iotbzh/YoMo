@@ -2,9 +2,9 @@ SUMMARY = "yocto sdk bootstrap"
 
 LICENSE = "MIT"
 
-TOOLCHAIN_HOST_TASK ?= " nativesdk-init-sdk-rootfs"
+TOOLCHAIN_HOST_TASK ?= " nativesdk-init-sdk-rootfs nativesdk-rpm-dbg"
 
-TOOLCHAIN_TARGET_TASK ?= ""
+TOOLCHAIN_TARGET_TASK ?= "rpm"
 
 MULTIMACH_TARGET_SYS = "${SDK_ARCH}-nativesdk${SDK_VENDOR}-${SDK_OS}"
 PACKAGE_ARCH = "${SDK_ARCH}_${SDK_OS}"
@@ -36,6 +36,9 @@ do_populate_sdk[stamp-extra-info] = "${PACKAGE_ARCH}"
 
 REAL_MULTIMACH_TARGET_SYS = "none"
 
+SDKIMAGE_FEATURES_append = " dev-pkgs dbg-pkgs"
+IMAGE_FEATURES_append = " dev-pkgs dbg-pkgs"
+
 create_sdk_files_append () {
 	rm -f ${SDK_OUTPUT}/${SDKPATH}/site-config-*
 	rm -f ${SDK_OUTPUT}/${SDKPATH}/environment-setup-*
@@ -44,6 +47,8 @@ create_sdk_files_append () {
 	# Generate new (mini) sdk-environment-setup file
 	script=${1:-${SDK_OUTPUT}/${SDKPATH}/environment-setup-${SDK_SYS}}
 	touch $script
+	echo '#SDK bootstrap installation path:'>> $script
+	echo 'export SDK_BOOTSTRAP=${SDKPATH}'>> $script
 	echo 'export PATH=${SDKPATHNATIVE}${bindir_nativesdk}:$PATH' >> $script
 	# In order for the self-extraction script to correctly extract and set up things,
 	# we need a 'OECORE_NATIVE_SYSROOT=xxx' line in environment setup script.
