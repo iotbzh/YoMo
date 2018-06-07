@@ -2,9 +2,9 @@ SUMMARY = "yocto sdk bootstrap"
 
 LICENSE = "MIT"
 
-TOOLCHAIN_HOST_TASK ?= " nativesdk-init-sdk-rootfs nativesdk-rpm-dbg"
+TOOLCHAIN_HOST_TASK ?= " nativesdk-init-sdk-rootfs"
 
-TOOLCHAIN_TARGET_TASK ?= "rpm"
+TOOLCHAIN_TARGET_TASK ?= ""
 
 MULTIMACH_TARGET_SYS = "${SDK_ARCH}-nativesdk${SDK_VENDOR}-${SDK_OS}"
 PACKAGE_ARCH = "${SDK_ARCH}_${SDK_OS}"
