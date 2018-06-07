@@ -188,9 +188,43 @@ bitbake yocto-repo-manager-native -c addto_recipe_sysroot
 
 ### Publish the rpm repositories
 
+Publish the rpm:
+
 ```bash
 mkdir -p ${SRV_DIR}/yomo_repositories/testRepository
 oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ${SRV_DIR}/yomo_repositories -r testRepository -v
+```
+
+Publish repositories config file:
+
+```bash
+cat >${SRV_DIR}/yomo_repositories/testRepository/SDK-configuration.json<<'EOF'
+{
+    "repo":{
+        "runtime":{
+            "Name":"repo1",
+            "repo1":"http://${YOUR_HTTP_SRV}/yomo_repositories/testRepository/runtime/"
+        },
+        "sdk":{
+            "Name":"repo2",
+            "repo2":"http://${YOUR_HTTP_SRV}/yomo_repositories/testRepository/nativesdk/"
+        }
+    }
+ }
+EOF
+```
+
+Build SDK config files:
+
+```bash
+bitbake sysroots-conf nativesdk-sysroots-conf -c install
+```
+
+Publish SDK config files:
+
+```bash
+cp tmp/work/x86_64-nativesdk-pokysdk-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/poky/2.5/sysroots/x86_64-pokysdk-linux/usr/share/sdk_default.json ${SRV_DIR}/yomo_repositories/testRepository/
+cp tmp/work/i586-poky-linux/sysroots-conf/0.1-r0/image/usr/share/qemux86_default.json ${SRV_DIR}/yomo_repositories/testRepository/
 ```
 
 ### Build the sdk bootstrap
@@ -210,17 +244,71 @@ cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/yomo_repositories/testRep
 
 ### Init your SDK
 
+At first download and install the sdk-bootstrap
+
 ```bash
+export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap
+wget http://${YOUR_HTTP_SRV}/yomo_repositories/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
+chmod a=x ./x86_64-sdk-bootstrap-2.5.sh
+./x86_64-sdk-bootstrap-2.5.sh -d ${BOOTSTRAP_INSTALL} -y
+```
+
+Init your sdk-bootstrap:
+
+```bash
+export PATH=${XDT_SDK_BOOTSTRAP}/sysroots/x86_64-aglsdk-linux/usr/bin:$PATH
+```
+
+Or:
+
+```bash
+source . ${XDT_SDK_BOOTSTRAP}/environment-setup-x86_64-pokysdk-linux
+```
+
+Download repositories config files:
+
+```bash
+wget http://${YOUR_HTTP_SRV}/yomo_repositories/testRepository/SDK-configuration.json
+wget http://${YOUR_HTTP_SRV}/yomo_repositories/testRepository/qemux86_default.json
+wget http://${YOUR_HTTP_SRV}/yomo_repositories/testRepository/sdk_default.json
+```
+
+```bash
+init-sdk-rootfs -i qemux86_default.json -i SDK-configuration.json -i sdk_default.json -o /xdt/sdk-yomo
 ```
 
 ### Update your SDK
 
-```bash
+Init native sysroot:
 
+```bash
+cd /xdt/sdk-yomo/repo1-sdk/
+./dnf4Native install packagegroup-cross-canadian-*
+```
+
+Native tool:
+
+```bash
+cd /xdt/sdk-yomo/repo1-sdk/
+./dnf4Native search cmake
+./dnf4Native install nativesdk-cmake
+./dnf4Native update nativesdk-cmake
+```
+
+Target tool:
+
+```bash
+cd /xdt/sdk-yomo/repo1-sdk/
+./dnf4Target search libglib-2.0-dev
+./dnf4Native install libglib-2.0-dev
+./dnf4Native update libglib-2.0-dev
 ```
 
 ### Use your SDK
 
 ```bash
-
+mkdir -p test-build
+cd test-build
+source /xdt/sdk-yomo/repo1-sdk/env-init-SDK.sh
+which cmake
 ```
