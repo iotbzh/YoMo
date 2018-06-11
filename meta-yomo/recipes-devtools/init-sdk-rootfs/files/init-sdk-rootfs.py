@@ -269,10 +269,10 @@ done | xargs -n100 file | grep ":.*\(ASCII\|script\|source\).*text" | \\
                                                      self.__NATIVE_SYSROOT_SETUP_ALIAS + "/site-config-" + self.__REAL_MULTIMACH_TARGET_SYS))
             f.write("export OECORE_NATIVE_SYSROOT=\"%s\"\n" % self.__SDKPATHNATIVE)
             f.write("export OECORE_ACLOCAL_OPTS=\"%s\"\n" % ("-I " + self.__SDKPATHNATIVE+"/usr/share/aclocal"))
+            f.write("unset LD_LIBRARY_PATH\n")
             NATIVE_SYSROOT_ENV = self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP_ALIAS + \
-                "/environment-setup-" + self.__REAL_MULTIMACH_TARGET_SYS
+                "/yomo-environment-setup-" + self.__REAL_MULTIMACH_TARGET_SYS
             f.write("source %s\n" % NATIVE_SYSROOT_ENV)
-
 
 def concatenateJson(inputJson, outputJson):
     output_Json = {}
