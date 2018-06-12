@@ -211,6 +211,7 @@ Publish the rpm:
 export PUBPRJDIR="yomo_repositories"
 export PUBSDKDIR="testRepository"
 export PUBDIR="${PUBPRJDIR}/${PUBSDKDIR}"
+export YOUR_HTTP_SRV="your_http_server"
 mkdir -p ${SRV_DIR}/${PUBDIR}
 oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ${SRV_DIR}/${PUBPRJDIR} -r ${PUBSDKDIR} -v
 ```
@@ -242,7 +243,7 @@ bitbake sysroots-conf nativesdk-sysroots-conf -c install
 Publish SDK config files:
 
 ```bash
-cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/poky-agl/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/${PUBDIR}/
+cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/poky/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/${PUBDIR}/
 cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/${PUBDIR}/
 ```
 
@@ -255,8 +256,8 @@ bitbake sdk-bootstrap
 Publish your SDK boot strap
 
 ```bash
-mkdir -p ${SRV_DIR}/${PUBDIR}
-cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/${PUBDIR}
+mkdir -p ${SRV_DIR}/${PUBPRJDIR}/sdk-bootstrap/
+cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/${PUBDIR}/sdk-bootstrap/
 ```
 
 ### Init your SDK
@@ -294,7 +295,7 @@ wget http://${YOUR_HTTP_SRV}/${PUBDIR}/sdk_default.json
 init-sdk-rootfs -i qemux86_default.json -i SDK-configuration.json -i sdk_default.json -o /xdt/sdk-yomo
 ```
 
-### Update your SDK TOFIX
+### Update your SDK
 
 Init native sysroot:
 
