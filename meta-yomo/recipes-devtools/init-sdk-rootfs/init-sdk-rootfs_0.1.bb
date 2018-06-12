@@ -7,7 +7,7 @@ SRC_URI = " \
             file://init-sdk-rootfs.py \
             "
 
-RDEPENDS_${PN} = "dnf"
+RDEPENDS_${PN} = "dnf python3-subprocess"
 
 BBCLASSEXTEND = "nativesdk"
 S = "${WORKDIR}"
