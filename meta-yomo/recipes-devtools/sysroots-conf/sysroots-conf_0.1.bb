@@ -33,7 +33,7 @@ do_install_class-nativesdk() {
     "sdk_conf":{
         "TUNE_PKGARCH":   "${TUNE_PKGARCH}",
         "SDK_ARCH":       "${SDK_ARCH}",
-        "HOST_SYS":       "${HOST_SYS}"
+        "HOST_SYS":       "${HOST_SYS}",
         "SDK_VENDOR":     "${SDK_VENDOR}",
         "SDK_VERSION":    "${SDK_VERSION}",
         "SDK_OS":         "${SDK_OS}",
