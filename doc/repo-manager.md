@@ -317,7 +317,6 @@ Native tool:
 cd /xdt/sdk-yomo/repo1-sdk/
 ./dnf4Native search cmake
 ./dnf4Native install nativesdk-cmake
-./dnf4Native update nativesdk-cmake
 ```
 
 Target tool:
@@ -326,14 +325,20 @@ Target tool:
 cd /xdt/sdk-yomo/repo1-sdk/
 ./dnf4Target search libglib-2.0-dev
 ./dnf4Native install libglib-2.0-dev
-./dnf4Native update libglib-2.0-dev
 ```
 
-### Use your SDK
+### Use your SDK on AGL
 
 ```bash
-mkdir -p test-build
-cd test-build
-source /xdt/sdk-yomo/repo1-sdk/env-init-SDK.sh
-which cmake
+cd /xdt/sdk-yomo/repo1-sdk/
+PKG="nativesdk-packagegroup-qt5-toolchain-host nativesdk-packagegroup-sdk-host packagegroup-cross-canadian-*"
+./dnf4Native install ${PKG}
+PKG="packagegroup-qt5-toolchain-target linux-libc-headers-dev libjson-c-dev af-binder-dev"
+./dnf4Target install ${PKG}
+...
+git clone https://gerrit.automotivelinux.org/gerrit/apps/hvac
+cd hvac
+. /xdt/sdk-agl/myProject-sdk/env-init-SDK.sh
+qmake
+make
 ```
