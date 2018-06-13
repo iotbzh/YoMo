@@ -62,6 +62,13 @@ BBLAYERS += "${WORKDIR}/meta/YoMo/meta-yomo"
 
 Note: You must replace ${WORKDIR} by your path
 
+
+* If you use meta-qt5 add:
+
+```bash
+BBLAYERS += "${WORKDIR}/meta/YoMo/meta-qt5-yomo"
+```
+
 * Build an image
 
 ```bash
@@ -243,8 +250,8 @@ bitbake sysroots-conf nativesdk-sysroots-conf -c install
 Publish SDK config files:
 
 ```bash
-cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/poky/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/${PUBDIR}/
-cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/${PUBDIR}/
+cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/*/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/sdk-bootstrap/
+cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/sdk-bootstrap/
 ```
 
 ### Build the sdk bootstrap
@@ -256,8 +263,8 @@ bitbake sdk-bootstrap
 Publish your SDK boot strap
 
 ```bash
-mkdir -p ${SRV_DIR}/${PUBPRJDIR}/sdk-bootstrap/
-cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/${PUBDIR}/sdk-bootstrap/
+mkdir -p ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
+cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
 ```
 
 ### Init your SDK
@@ -266,7 +273,7 @@ At first download and install the sdk-bootstrap
 
 ```bash
 export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap
-wget http://${YOUR_HTTP_SRV}/${PUBPRJDIR}/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
+wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
 chmod a=x ./x86_64-sdk-bootstrap-2.5.sh
 sudo ./x86_64-sdk-bootstrap-2.5.sh -d ${BOOTSTRAP_INSTALL} -y
 ```
@@ -286,9 +293,9 @@ Or:
 Download repositories config files:
 
 ```bash
-wget http://${YOUR_HTTP_SRV}/${PUBDIR}/SDK-configuration.json
-wget http://${YOUR_HTTP_SRV}/${PUBDIR}/qemux86_default.json
-wget http://${YOUR_HTTP_SRV}/${PUBDIR}/sdk_default.json
+wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/SDK-configuration.json
+wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/qemux86_default.json
+wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/sdk_default.json
 ```
 
 ```bash
