@@ -40,6 +40,13 @@ BBLAYERS += "${WORKDIR}/meta/YoMo/meta-yomo"
 
 Note: You must replace ${WORKDIR} by your path
 
+
+* If you use meta-qt5 add:
+
+```bash
+BBLAYERS += "${WORKDIR}/meta/YoMo/meta-qt5-yomo"
+```
+
 * Build an image
 
 ```bash
