@@ -1,6 +1,30 @@
 # repository manager
 
-## init project
+## For AGL project
+
+> At first you need to initial your agl project source.
+[Documentation](http://docs.automotivelinux.org/docs/getting_started/en/dev/reference/source-code.html)
+
+```bash
+mkdir -p "${WORKDIR}/meta" "${WORKDIR}/build"
+cd ${WORKDIR}/meta
+mkdir -p ~/bin
+export PATH=~/bin:$PATH
+curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+chmod a+x ~/bin/repo
+```
+
+```bash
+rm -rf ${WORKDIR}/meta/*
+cd ${WORKDIR}/meta
+repo init -u https://gerrit.automotivelinux.org/gerrit/AGL/AGL-repo
+repo sync
+git clone https://github.com/iotbzh/YoMo.git
+```
+
+Note : You can choose another source release [Here](http://docs.automotivelinux.org/docs/getting_started/en/dev/reference/source-code.html#download-source)
+
+## For Yocto Project
 
 > At first you need to initial your yocto project source.
 
@@ -11,18 +35,16 @@ git clone -b sumo git://git.yoctoproject.org/poky.git
 git clone https://github.com/iotbzh/YoMo.git
 ```
 
-* for AGL project: [Here](http://docs.automotivelinux.org/docs/getting_started/en/dev/reference/source-code.html)
+Note : You have to change your working directory. Or you have to clean "${WORKDIR}/meta"
 
-## Build
+## Build Project
 
-> init your build directoryash
+> init your build directory
 
 ```bash
 cd "${WORKDIR}/build"
 source ../meta/poky/oe-init-build-env yomo
 ```
-
-* for AGL project: [Here](http://docs.automotivelinux.org/docs/getting_started/en/dev/reference/source-code.html)
 
 >Add meta-yomo  to conf/bblayers.conf
 
@@ -59,12 +81,6 @@ And build your SDK RPM
 bitbake core-image-sato -c populate_sdk
 ```
 
-* for AGL project:
-
-```bash
-bitbake agl-demo-platform-crosssdk
-```
-
 ## Build yocto-repo-manager
 
 ### HTTP server
@@ -90,6 +106,7 @@ For HTTPS, you need to have a certificat.
 ```bash
 openssl req -new -x509 -days 365 -nodes -out /etc/ssl/certs/yomo.crt -keyout /etc/ssl/private/yomo.key
 ```
+
 output:
 
 ```bash
@@ -201,6 +218,7 @@ Publish the rpm:
 export PUBPRJDIR="yomo_repositories"
 export PUBSDKDIR="testRepository"
 export PUBDIR="${PUBPRJDIR}/${PUBSDKDIR}"
+export YOUR_HTTP_SRV="your_http_server"
 mkdir -p ${SRV_DIR}/${PUBDIR}
 oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ${SRV_DIR}/${PUBPRJDIR} -r ${PUBSDKDIR} -v
 ```
@@ -232,9 +250,8 @@ bitbake sysroots-conf nativesdk-sysroots-conf -c install
 Publish SDK config files:
 
 ```bash
-mkdir -p ${PUBSDKDIR}/sdk-bootstrap
-cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/poky-agl/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
-cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
+cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/*/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/sdk-bootstrap/
+cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/sdk-bootstrap/
 ```
 
 ### Build the sdk bootstrap
@@ -250,8 +267,6 @@ mkdir -p ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
 cp tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh ${SRV_DIR}/${PUBSDKDIR}/sdk-bootstrap
 ```
 
-###
-
 ### Init your SDK
 
 At first download and install the sdk-bootstrap
@@ -260,19 +275,19 @@ At first download and install the sdk-bootstrap
 export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap
 wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
 chmod a=x ./x86_64-sdk-bootstrap-2.5.sh
-./x86_64-sdk-bootstrap-2.5.sh -d ${BOOTSTRAP_INSTALL} -y
+sudo ./x86_64-sdk-bootstrap-2.5.sh -d ${BOOTSTRAP_INSTALL} -y
 ```
 
 Init your sdk-bootstrap:
 
 ```bash
-export PATH=${XDT_SDK_BOOTSTRAP}/sysroots/x86_64-aglsdk-linux/usr/bin:$PATH
+export PATH=${BOOTSTRAP_INSTALL}/sysroots/x86_64-aglsdk-linux/usr/bin:$PATH
 ```
 
 Or:
 
 ```bash
-source . ${XDT_SDK_BOOTSTRAP}/environment-setup-x86_64-pokysdk-linux
+. ${BOOTSTRAP_INSTALL}/environment-setup-x86_64-pokysdk-linux
 ```
 
 Download repositories config files:
