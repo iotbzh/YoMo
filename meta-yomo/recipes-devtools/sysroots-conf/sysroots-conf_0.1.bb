@@ -15,6 +15,7 @@ do_install() {
     "runtime_conf":{
         "TUNE_PKGARCH":   "${TUNE_PKGARCH}",
         "TARGET_VENDOR":  "${TARGET_VENDOR}",
+        "TARGET_SYS":     "${TARGET_SYS}",
         "DISTRO":         "${DISTRO}",
         "DISTRO_CODENAME":"${DISTRO_CODENAME}",
         "MACHINE_ARCH":   "${MACHINE_ARCH}",
@@ -32,6 +33,7 @@ do_install_class-nativesdk() {
     "sdk_conf":{
         "TUNE_PKGARCH":   "${TUNE_PKGARCH}",
         "SDK_ARCH":       "${SDK_ARCH}",
+        "HOST_SYS":       "${HOST_SYS}"
         "SDK_VENDOR":     "${SDK_VENDOR}",
         "SDK_VERSION":    "${SDK_VERSION}",
         "SDK_OS":         "${SDK_OS}",

@@ -94,8 +94,10 @@ class SdkManager():
         self.__TARGET_OS = self.__SDK_OS
         self.__TUNE_PKGARCH = self.__getSdkConf("TUNE_PKGARCH")
         self.__TARGET_VENDOR = self.__getRuntimeConf("TARGET_VENDOR")
+        self.__TARGET_SYS = self.__getRuntimeConf("TARGET_SYS")
         self.__SDK_VERSION = self.__getSdkConf("SDK_VERSION")
         self.__DISTRO = self.__getSdkConf("DISTRO")
+        self.__HOST_SYS = self.__getSdkConf("HOST_SYS")
         self.__REAL_MULTIMACH_TARGET_SYS = self.__TUNE_PKGARCH+self.__TARGET_VENDOR+"-"+self.__TARGET_OS
         self.__SDKTARGETSYSROOT = self.__SDKSYSROOT+"/"+self.__REAL_MULTIMACH_TARGET_SYS
         self.__SDK_SYS = self.__SDK_ARCH+self.__SDK_VENDOR+"-"+self.__SDK_OS
@@ -259,11 +261,12 @@ done | xargs -n100 file | grep ":.*\(ASCII\|script\|source\).*text" | \\
             BASEBIN = self.__SDKPATHNATIVE+"/bin"
             BASESBIN = self.__SDKPATHNATIVE+"/sbin"
             # It seems to be the same as BASEBIN
-            BASESBIN_HOST = BINDIR + "/../"+self.__SDK_SYS+"/bin"
-            BINDIR_CROSS = BINDIR+"/"+self.__REAL_MULTIMACH_TARGET_SYS
+            BASESBIN_HOST = BINDIR + "/../"+self.__HOST_SYS+"/bin"
+            BINDIR_CROSS = BINDIR+"/"+self.__TARGET_SYS
             EXTRAPATH = ""
             PATH = BINDIR + ":" + SBINDIR + ":" + BASEBIN + ":" + BASESBIN + \
                 ":" + BASESBIN_HOST + ":" + BINDIR_CROSS + EXTRAPATH + ":$PATH"
+
             f.write("export PATH=\"%s\"\n" % PATH)
             f.write("export CONFIG_SITE=\"%s\"\n" % (self.__SDKPATHNATIVE +
                                                      self.__NATIVE_SYSROOT_SETUP_ALIAS + "/site-config-" + self.__REAL_MULTIMACH_TARGET_SYS))
