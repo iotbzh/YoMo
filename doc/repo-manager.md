@@ -62,7 +62,6 @@ BBLAYERS += "${WORKDIR}/meta/YoMo/meta-yomo"
 
 Note: You must replace ${WORKDIR} by your path
 
-
 * If you use meta-qt5 add:
 
 ```bash
@@ -220,7 +219,7 @@ export PUBSDKDIR="testRepository"
 export PUBDIR="${PUBPRJDIR}/${PUBSDKDIR}"
 export YOUR_HTTP_SRV="your_http_server"
 mkdir -p ${SRV_DIR}/${PUBDIR}
-oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ${SRV_DIR}/${PUBPRJDIR} -r ${PUBSDKDIR} -v
+oe-run-native yocto-repo-manager-native repo-manager -i ./tmp/deploy/rpm/ -o ${SRV_DIR}/${PUBPRJDIR} -v
 ```
 
 Publish repositories config file:
@@ -273,7 +272,7 @@ At first download and install the sdk-bootstrap
 
 ```bash
 export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap
-wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
+wget http://${YOUR_HTTP_SRV}/sdk-bootstrap/sdk-bootstrap/x86_64-sdk-bootstrap-2.5.sh
 chmod a=x ./x86_64-sdk-bootstrap-2.5.sh
 sudo ./x86_64-sdk-bootstrap-2.5.sh -d ${BOOTSTRAP_INSTALL} -y
 ```
@@ -293,9 +292,9 @@ Or:
 Download repositories config files:
 
 ```bash
-wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/SDK-configuration.json
-wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/qemux86_default.json
-wget http://${YOUR_HTTP_SRV}/${PUBSDKDIR}/sdk-bootstrap/sdk_default.json
+wget http://${YOUR_HTTP_SRV}/sdk-bootstrap/SDK-configuration.json
+wget http://${YOUR_HTTP_SRV}/sdk-bootstrap/qemux86_default.json
+wget http://${YOUR_HTTP_SRV}/sdk-bootstrap/sdk_default.json
 ```
 
 ```bash

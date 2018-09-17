@@ -6,380 +6,448 @@ import shutil
 import subprocess
 import shlex
 import re
+import xml.etree.ElementTree as ET
+import gzip
+import tempfile
 
 global VERBOSE
-VERBOSE=False
+VERBOSE = False
 
-global ERASE_LINE
-ERASE_LINE = '\x1b[2K'
-
-global pattern_rpm
-#Regular expression for parsing a RPM file name.
-pattern_rpm = re.compile(r'^([\w\.\-\+]*)\-([\w\.\-\+]*)\-([\w\.]*)\.(\w*).rpm')
 
 def checkDir(aPath):
+    '''
+    Check a directory, exit((1) if not exist
+    '''
     if not os.path.isdir(aPath):
-        print("path ",aPath," is not a valid directory")
+        print("path ", aPath, " is not a valid directory")
         exit(1)
 
+
+def get_src_name(rpm_name):
+    '''
+    Get the rpm name from the rpm file name
+    '''
+    pattern_rpm = re.compile(
+        r'^([\w\.\-\+]*)\-([\w\.\-\+]*)\-([\w\.]*)\.(\w*).rpm')
+    searchRes = pattern_rpm.search(rpm_name)
+    if searchRes is None:
+        print("ERROR: The file %s is not a rpm format file" % rpm_name)
+    else:
+        result = searchRes.groups()
+        return result[0]
+    return None
+
+
 class Package:
-    def __init__(self, fullname, directory=None, repoName=None, archDir=None):
-        searchRes=pattern_rpm.search(fullname)
+    def __init__(self, name, version, location, sourcerpm):
+        self.__name = name
+        self.__version = version["ver"]
+        self.__epoch = version["epoch"]
+        self.__revision = version["rel"]
+        self.__location = location
+        self.__srcpkg = get_src_name(sourcerpm)
 
-        if searchRes is None:
-            print("ERROR: The file %s is not a rpm format file" % fullname)
-        else:
-            result=searchRes.groups()
-            self.__name=result[0]
-            self.__version=result[1]
-            self.__revision=result[2]
-            self.__arch=result[3]
-
-            self.__repoName=repoName
-            self.__archDir=archDir
-
-            self.__fullpath=None
-            self.__srcpkg=None
-
-            if directory is not None:
-                self.__fullpath=os.path.join(directory, fullname)
-                srcName=self.__find_package_source()
-                if srcName is None:
-                    print("ERROR: can't find src package for %s" % fullname)
-                else:
-                    self.__srcpkg=Package(srcName)
-
-    #We need to find source package name of a rpm file
-    def __find_package_source(self):
-        #Use a subprocess is not the most efficiant, need to be optimized
-        cmd_findsrc="rpm -q -p --queryformat %%{SOURCERPM} %s" % (self.__fullpath)
-        args = shlex.split(cmd_findsrc)
-        res=subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        if res.returncode == 0 :
-            return res.stdout.decode('utf8')
-        else:
-            return None
-
-    def getName(self):
+    def get_name(self):
+        '''
+        Return the package name
+        '''
         return self.__name
 
-    def getRpmPath(self):
-        return self.__fullpath
+    def get_location(self):
+        '''
+        Return the location of the file in the repository
+        '''
+        return self.__location
 
-    def getVersion(self):
-        return self.__version
+    def get_version(self):
+        '''
+        Return the "${version}-${revision}" of the package
+        '''
+        return "%s-%s" % (self.__version, self.__revision)
 
-    def getSrcName(self):
-        return self.__srcpkg.getName()
+    def get_src_name(self):
+        '''
+        Return the rpm source name
+        '''
+        return self.__srcpkg
 
-    def copyRPM(self, destDir):
-        dstFileDir=os.path.join(destDir, self.__repoName, self.__archDir)
-        if not os.path.exists(dstFileDir):
-            os.makedirs(dstFileDir)
+    def publish(self, repo_srcdir, repo_destdir):
+        '''
+        Publish rpm file from repository source
+        '''
+        dstFile = os.path.join(repo_destdir, self.__location)
+        dstFile_dir = os.path.dirname(dstFile)
+        if not os.path.exists(dstFile_dir):
+            os.makedirs(dstFile_dir)
+        shutil.copyfile(os.path.join(repo_srcdir, self.__location), dstFile)
 
-        fullname="%s-%s-%s.%s.rpm" %(self.__name, self.__version, self.__revision, self.__arch)
-        dstFile=os.path.join(dstFileDir, fullname)
+    def remove_rpm(self, repo_dir):
+        '''
+        Remove rpm file from repository source
+        '''
+        rpm_file = os.path.join(repo_dir, self.__location)
+        if not os.path.exists(rpm_file):
+            print("ERROR: the file %s do not exist" % rpm_file)
+        os.remove(rpm_file)
 
-        shutil.copyfile( self.__fullpath, dstFile)
-
-    def removeRPM(self):
-        os.remove(self.__fullpath)
-
-    #Compare two rpm file and find if some real binary difference exist (like rpm-check.sh)
-    def checkIfUpdateIsNeeded(self, dstFile):
-        cmd_check_diff="pkg-diff.sh %s %s" % (self.__fullpath, dstFile)
+    def check_if_update_is_needed(self, repo_srcdir, dstFile):
+        '''
+        Compare two rpm file and find if some real binary difference exist
+        '''
+        cmd_check_diff = "pkg-diff.sh %s %s" % (
+            os.path.join(repo_srcdir, self.__location), dstFile)
         args = shlex.split(cmd_check_diff)
-        res=subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if res.returncode == 0 :
+        res = subprocess.run(args, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        if res.returncode == 0:
             return False
         else:
             return True
 
-    def updateRevision(self):
-        if self.__revision.startswith("r"):
-            rawRev=self.__revision[1:].split(".")
-            try:
-                rawRev[-1]=str(int(rawRev[-1])+1)
-            except:
-                print("ERROR: revision %s can't be incremented" % ( self.__revision))
-                exit(1)
-            self.__revision="r"+".".join(rawRev)
-        else:
-            #Only yocto package revision start with a "r"
-            print("ERROR: Unknow format for revision" % self.__revision)
-            exit(1)
-
-    def getRevision(self):
-        return self.__revision
-
-    def setRevision(self, revision):
-        self.__revision=revision
 
 class PackageSource:
-    def __init__(self):
-        #All the binaries rpm comming from this source
-        self.__binPackage=[]
-        self.needUpdateRevision=False
-        self.newPkg=False
+    def __init__(self, name, repository_path):
+        self.__binPackage = []
+        self.__repository_path = repository_path
+        self.__name = name
+        self.__version = None
 
-    def appendPkg(self,package):
+    def get_name(self):
+        '''
+        Return package source name
+        '''
+        return self.__name
+
+    def get_repository_path(self):
+        '''
+        Return repository path
+        '''
+        return self.__repository_path
+
+    def append_pkg(self, package):
+        '''
+        Add a new package
+        '''
         self.__binPackage.append(package)
 
-    def copyRPM(self, destDir):
-        for pkg in self.__binPackage:
-            pkg.copyRPM(destDir)
+    def get_version(self):
+        '''
+        Return the version "${version}-${revision}" of the package
+        '''
+        if self.__version is None:
+            for pkg in self.__binPackage:
+                ver = pkg.get_version()
+                if self.__version is None:
+                    self.__version = ver
+                else:
+                    if self.__version != ver:
+                        print("ERROR source package %s have different rpm version %s and %s. Can't update repository" % (
+                            self.__name, self.__version, ver))
+                        exit(1)
 
-    def getPackages(self):
+        return self.__version
+
+    def get_packages(self):
+        '''
+        Return the list of package
+        '''
         return self.__binPackage
 
-    def getPackage(self, name):
+    def get_package(self, name):
+        '''
+        return the package with the given rpm name
+        '''
         for pkg in self.__binPackage:
-            if pkg.getName() == name:
+            if pkg.get_name() == name:
                 return pkg
         return None
 
-    def getListPackages(self):
-        listPkg=[]
+    def publish(self, repo_destdir):
+        '''
+        Publish the rpm files from repository source
+        '''
         for pkg in self.__binPackage:
-            listPkg.append(pkg.getName())
-        return listPkg
+            pkg.publish(self.__repository_path, repo_destdir)
 
-    def updateRevision(self):
+    def remove(self):
+        '''
+        Clean repository
+        Should only be used for destination
+        '''
         for pkg in self.__binPackage:
-            pkg.updateRevision()
+            pkg.remove_rpm(self.__repository_path)
 
-    def setRevision(self,revision):
-        for pkg in self.__binPackage:
-            pkg.setRevision(revision)
-
-    def getRevision(self):
-        revision=None
-        #All binaries package should have the same revision
-        #Need to be improve, with a cache may be
-        for pkg in self.__binPackage:
-            r=pkg.getRevision()
-
-            if revision is  None:
-                revision=r
-            elif revision != r:
-                print("WARNING: package %s have a revision %s." % (pkg.getName(),revision))
-
-        return revision
-
-    def removeRPM(self):
-        #Clean repository
-        #Should only be used for destination
-        for pkg in self.__binPackage:
-            pkg.removeRPM()
 
 class RepositoriesSynchronizer:
-    def __init__(self, inputdir, outputdir, reponame, outputAuxilaire=[], lockOutputAuxilaire=True, removeUnused=False):
-        self.__inputdir=inputdir
-        self.__outputdir=outputdir
-        self.__reponame=reponame
-        self.__destdir=reponame
+    def __init__(self, inputdir, outputdir, remove_unused=False):
+        self.__inputdir = inputdir
+        self.__outputdir = outputdir
+        self.__remove_unused = remove_unused
 
         checkDir(self.__inputdir)
-        checkDir(self.__outputdir)
-        self.__destdir=os.path.join(self.__outputdir, self.__reponame)
 
-        self.__dicoNewPackageSource={}
-        self.__dicoRepoPackageSource={}
+        self.__dico_repo_type = {}
+        self.__dico_repo_type["nativesdk"] = "nativesdk"
+        self.__dico_repo_type["runtime"] = "runtime"
 
-    def __scanInputRPM(self):
-        listArchDir=os.listdir( self.__inputdir)
-        #The rpm files are store two level after the input dir directory
+        self.__repo_destdir = {}
+        self.__repo_destdir["nativesdk"] = os.path.join(
+            self.__outputdir, self.__dico_repo_type["nativesdk"])
+        self.__repo_destdir["runtime"] = os.path.join(
+            self.__outputdir, self.__dico_repo_type["runtime"])
+
+        self.__dest_rpm_pkg = {}
+        self.__src_rpm_pkg = {}
+
+    def __direct_copy_repo(self, repo_type, repo_destdir):
+        '''
+        Make a direct copy of the repository
+        '''
+        listArchDir = os.listdir(self.__inputdir)
+        # The rpm files are store two level after the input dir directory
         for archDir in listArchDir:
-            #We need to separate cross compile packages and SDK packages
+            # We need to separate cross compile packages and SDK packages
             if "sdk" in archDir:
-                repoName="nativesdk"
+                dir_type = self.__dico_repo_type["nativesdk"]
             else:
-                repoName="runtime"
-            fullPathDir=os.path.join(self.__inputdir, archDir)
-            listNewRpm=os.listdir( fullPathDir)
-            scnPkg=1
-            totalPkg=len(listNewRpm)
-            for newRpm in listNewRpm:
-                if VERBOSE:
-                    b = "Scan Input RPM in %s: %s/%s" % (archDir, scnPkg, totalPkg)
-                    print (ERASE_LINE, end="\r")
-                    print (b, end="\r")
-                    scnPkg+=1
-                newPackage=Package(newRpm, fullPathDir, repoName, archDir)
-                if newPackage.getSrcName() not in self.__dicoNewPackageSource:
-                    self.__dicoNewPackageSource[newPackage.getSrcName()]=PackageSource()
-                #Store binary rpm file by rpm src
-                self.__dicoNewPackageSource[newPackage.getSrcName()].appendPkg(newPackage)
+                dir_type = self.__dico_repo_type["runtime"]
+
+            if repo_type == dir_type:
+                if not os.path.isdir(repo_destdir):
+                    os.makedirs(repo_destdir, exist_ok=True)
+
+                dest_repo = os.path.join(repo_destdir, archDir)
+
+                if os.path.isdir(dest_repo):
+                    print("path ", dest_repo, " already exist")
+                    exit(1)
+
+                shutil.copytree(os.path.join(
+                    self.__inputdir, archDir), dest_repo)
+
+    def check_if_update_is_needed(self, src_rpm, dest_rpm):
+        '''
+        Check if a package of the repository need an update
+        '''
+        for src_pkg in src_rpm.get_packages():
+            dst_pkg = dest_rpm.get_package(src_pkg.get_name())
+            if dst_pkg is None:
+                return True
+            dst_rpm = os.path.join(dest_rpm.get_repository_path(), dst_pkg.get_location())
+            if src_pkg.check_if_update_is_needed(src_rpm.get_repository_path(), dst_rpm):
+                return True
+        return False
+
+    def check_package(self, src_rpm, dest_rpm, repo_destdir):
+        '''
+        Check package for an update
+        '''
+        if src_rpm.get_version() > dest_rpm.get_version() and self.check_if_update_is_needed(src_rpm, dest_rpm):
+            dest_rpm.remove()
+            src_rpm.publish(repo_destdir)
+        elif src_rpm.get_version() < dest_rpm.get_version():
+            print("WARNING the %s version %s is older than %s and not be update." % (
+                dest_rpm.get_name(), src_rpm.get_version(), dest_rpm.get_version()))
+
+    def __check_rpm_2_update(self, src_rpm_pkg, dest_rpm_pkg, repo_destdir):
+        '''
+        Check all package for an update
+        '''
+        src_rpm = src_rpm_pkg.keys()
+        dest_rpm = dest_rpm_pkg.keys()
+        if self.__remove_unused:
+            unused_pkg = set(dest_rpm) - set(src_rpm)
+            for pkg in unused_pkg:
+                dest_rpm_pkg[pkg].remove()
+
+        new_pkg = set(src_rpm) - set(dest_rpm)
+        for pkg in new_pkg:
+            src_rpm_pkg[pkg].publish(repo_destdir)
+
+        common_pkg = set(src_rpm) & set(dest_rpm)
+        total_pkg = len(common_pkg)
+        number_check = 0
+        ERASE_LINE = '\x1b[2K'
+        if VERBOSE:
+            print("check rpm to update %s/%s " % (number_check, total_pkg), end="\r")
+        for pkg in common_pkg:
+            number_check += 1
             if VERBOSE:
-                print (ERASE_LINE, end="\r")
-        if VERBOSE:
-            print (ERASE_LINE, end="\r")
-            print ("Scan Input RPM done.", end="\n")
-
-    def __scanOutputRPM(self):
-        #The rpm files are store two level after the input dir directory
-        for repoName in ["nativesdk", "runtime"]:
-            #We need to separate cross compile packages and SDK packages
-            repoPath=os.path.join(self.__destdir, repoName)
-            if os.path.exists(repoPath):
-                listArchDir=os.listdir( repoPath )
-                for archDir in listArchDir:
-                    #Black list repodata directory
-                    if archDir != "repodata":
-                        archDirPath=os.path.join(repoPath, archDir)
-                        if os.path.exists(archDirPath):
-                            listreporpm=os.listdir( archDirPath)
-                            scnPkg=0
-                            totalPkg=len(listreporpm)
-                            for rpmfile in listreporpm:
-                                if VERBOSE:
-                                    b = "Scan Output RPM in %s/%s: %s/%s" % (repoName, archDir, scnPkg, totalPkg)
-                                    print (ERASE_LINE, end="\r")
-                                    print (b, end="\r")
-                                    scnPkg+=1
-                                aPackage=Package(rpmfile, archDirPath, repoName, archDir)
-                                if aPackage.getSrcName() not in self.__dicoRepoPackageSource:
-                                    self.__dicoRepoPackageSource[aPackage.getSrcName()]=PackageSource()
-                                self.__dicoRepoPackageSource[aPackage.getSrcName()].appendPkg(aPackage)
-                            if VERBOSE:
-                                print (ERASE_LINE, end="\r")
-        if VERBOSE:
-            print (ERASE_LINE, end="\r")
-            print ("Scan Input RPM done.", end="\n")
-
-    def __checkRPM2Update(self):
-        scnPkg=1
-        totalPkg=len( self.__dicoNewPackageSource)
-        listUpdatedPkg=[]
-        for newpkg in self.__dicoNewPackageSource:
+                print("check rpm %s to update %s/%s " % (pkg, number_check, total_pkg), end="\r")
+            self.check_package(src_rpm_pkg[pkg], dest_rpm_pkg[pkg], repo_destdir)
             if VERBOSE:
-                b = "Check update RPM %s %s/%s" % ( newpkg, scnPkg, totalPkg)
-                print (ERASE_LINE, end="\r")
-                print (b, end="\r")
-                scnPkg+=1
-            #If the package source is not in the soutput reposutory, it's a new package
-            if newpkg in self.__dicoRepoPackageSource:
-                #Compare all the binaries files of the package source
-                self.__comparePackages(self.__dicoNewPackageSource[newpkg], self.__dicoRepoPackageSource[newpkg], self.__destdir)
-                if self.__dicoNewPackageSource[newpkg].needUpdateRevision:
-                    #Update all binaries files revision
-                    self.__dicoRepoPackageSource[newpkg].updateRevision()
-                    self.__dicoNewPackageSource[newpkg].setRevision(self.__dicoRepoPackageSource[newpkg].getRevision())
-                    self.__dicoRepoPackageSource[newpkg].removeRPM()
-            else:
-                self.__dicoNewPackageSource[newpkg].newPkg = True
+                print(ERASE_LINE, end="\r")
 
-            if  self.__dicoNewPackageSource[newpkg].newPkg or self.__dicoNewPackageSource[newpkg].needUpdateRevision:
-                self.__dicoNewPackageSource[newpkg].copyRPM(self.__destdir)
+    def __get_primary_path(self, repository_path):
+        '''
+        Return the path of the primary.xml.gz file of the repository
+        '''
+        repomd = os.path.join(repository_path, "repodata", "repomd.xml")
 
-                listUpdatedPkg.append(newpkg)
-        if VERBOSE:
-            print (ERASE_LINE, end="\r")
-        if VERBOSE and len(listUpdatedPkg) > 0:
-            if len(listUpdatedPkg) < 50:
-                print ("Updated packages:")
-                for Updatedpkg in listUpdatedPkg:
-                    print ("\t%s" % Updatedpkg)
-            else:
-                print ("Updated %s packages" % len(listUpdatedPkg))
+        tree = ET.parse(repomd)
+        root = tree.getroot()
+        for child in root:
+            if 'type' in child.attrib and 'primary' == child.attrib['type']:
+                for g_child in child:
+                    if 'href' in g_child.attrib:
+                        return g_child.attrib['href']
+        return None
 
+    def __get_namespace(self, xml_path):
+        '''
+        Return the namespace of the xml file
+        '''
+        xml = None
+        rpm_namespaces = {}
 
-    def __comparePackages(self, newPackageSource, repoPackageSource, destDir):
-        for newPackage in newPackageSource.getPackages():
-            if newPackage.getName() not in repoPackageSource.getListPackages():
-                newPackageSource.needUpdateRevision=True
-                break
-            repoPackage=repoPackageSource.getPackage(newPackage.getName())
-            if newPackage.getVersion() != repoPackage.getVersion() or newPackage.checkIfUpdateIsNeeded(repoPackage.getRpmPath()):
-                newPackageSource.needUpdateRevision=True
-                break
+        from xml.etree import ElementTree
+        with gzip.open(xml_path, 'rb') as xml_file:
+            for event, elem in ElementTree.iterparse(xml_file, ('start', 'start-ns')):
+                if event == 'start-ns':
+                    if elem[0] in rpm_namespaces and rpm_namespaces[elem[0]] != elem[1]:
+                        raise KeyError(
+                            "Duplicate prefix with different URI found.")
+                    rpm_namespaces[str(elem[0])] = elem[1]
+                elif event == 'start':
+                    if xml is None:
+                        xml = elem
+                        break
+        return rpm_namespaces
 
-    def __checkDeprecatedRPM(self):
-        newPkg=set(self.__dicoNewPackageSource)
-        oldPkg=set(self.__dicoRepoPackageSource)
-        deprecatedPkg=oldPkg.difference(newPkg)
-        if VERBOSE and len(deprecatedPkg) > 0:
-            if len(deprecatedPkg) < 50:
-                print ("Deprecated packages:")
-                for pkg in deprecatedPkg:
-                    print ("\t%s" % pkg)
-            else:
-                print ("%s Deprecated packages" % len(deprecatedPkg))
+    def __get_rpm_from_primary(self, rpm_element, rpm_namespace):
+        '''
+        Get a package from a xml element
+        '''
+        rpm_name = rpm_element.find('{%s}name' % rpm_namespace['']).text
+        rpm_version = rpm_element.find(
+            '{%s}version' % rpm_namespace['']).attrib
+        location = rpm_element.find(
+            '{%s}location' % rpm_namespace['']).attrib['href']
+        format = rpm_element.find('{%s}format' % rpm_namespace[''])
+        sourcerpm = format.find('{%s}sourcerpm' % rpm_namespace['rpm']).text
 
-    def syncRepository(self):
+        return Package(rpm_name, rpm_version, location, sourcerpm)
+
+    def __get_primary(self, repository_path, primary_gz_path):
+        '''
+        Get the dico of rpm package from the primary.xml.gz file
+        '''
+        primary_gz = os.path.join(repository_path, primary_gz_path)
+        dico_src_package = {}
+        if not os.path.isfile(primary_gz):
+            print("ERROR no primary file %s" % primary_gz)
+            return None
+
+        rpm_namespace = self.__get_namespace(primary_gz)
+        xmlin = gzip.open(primary_gz, 'rb')
+
+        root = ET.fromstring(xmlin.read())
+        for child in root:
+            if 'type' in child.attrib and 'rpm' in child.attrib['type']:
+                package = self.__get_rpm_from_primary(child, rpm_namespace)
+                if not package.get_src_name() in dico_src_package:
+                    dico_src_package[package.get_src_name()] = PackageSource(package.get_src_name(), repository_path)
+                dico_src_package[package.get_src_name()].append_pkg(package)
+        return dico_src_package
+
+    def __scan_repository(self, repository_path):
+        '''
+        Get the dico of rpm package from the repository
+        '''
+        primary_gz_path = self.__get_primary_path(repository_path)
+        if primary_gz_path is None:
+            print("ERROR no primary find in %s " % repository_path)
+        package_src = self.__get_primary(repository_path, primary_gz_path)
+        return package_src
+
+    def sync_repositories(self):
+        '''
+        Synchronize all repositories
+        '''
         if VERBOSE:
             print("Start repositories synchronisation")
-        self.__scanInputRPM()
-        if VERBOSE:
-            print("Scan input repository done")
-        self.__scanOutputRPM()
-        if VERBOSE:
-            print("Scan output repositories done")
-        self.__checkRPM2Update()
-        if VERBOSE:
-            print("Check for update needed done")
-        self.__checkDeprecatedRPM()
-        if VERBOSE:
-            print("Check Deprecated done")
-        self.createRepos(self.__destdir)
+
+        for repo in self.__dico_repo_type:
+            self.sync_repository(repo)
+
         if VERBOSE:
             print("Create output repositories done")
 
-    def syncRpmFile(self, srcArchDir, destArchDir):
-        listNewRpm=os.listdir( srcArchDir)
-
-        dicoNewPackage={}
-
-        if VERBOSE:
-            print("Update rpm")
-
-        for newRpm in listNewRpm:
-            srcFile=os.path.join(srcArchDir, newRpm)
-            dstFile=os.path.join(destArchDir, newRpm)
-            if newRpm not in listOldRpm:
-                shutil.copyfile( srcFile, dstFile)
+    def sync_repository(self, repo):
+        '''
+        Synchronize a repository
+        '''
+        is_repo_new = not os.path.isdir(self.__repo_destdir[repo])
+        if is_repo_new:
+            if VERBOSE:
+                print("The repository %s do not exit. Create it, if necessary." % self.__repo_destdir[repo])
+            self.__direct_copy_repo(repo, self.__repo_destdir[repo])
+        else:
+            if not os.path.isfile(os.path.join(self.__repo_destdir[repo], "repodata", "repomd.xml")):
+                print("The directory %s is not a rpm repository" %
+                      self.__repo_destdir[repo])
             else:
-                updateRpmFile(srcFile,dstFile)
+                if VERBOSE:
+                    print("Scan output repositories")
+                self.__dest_rpm_pkg[repo] = self.__scan_repository(
+                    self.__repo_destdir[repo])
+                tmpdirname = tempfile.mkdtemp()
+                self.__direct_copy_repo(repo, tmpdirname)
+                self.__create_repo(tmpdirname)
+                if VERBOSE:
+                    print("Scan input repository")
+                self.__src_rpm_pkg[repo] = self.__scan_repository(tmpdirname)
+                if VERBOSE:
+                    print("Check for update needed")
+                self.__check_rpm_2_update(
+                    self.__src_rpm_pkg[repo], self.__dest_rpm_pkg[repo], self.__repo_destdir[repo])
+                shutil.rmtree(tmpdirname)
+        if os.path.isdir(self.__repo_destdir[repo]):
+            if VERBOSE:
+                print("Create repository config file in %s" %
+                        self.__repo_destdir[repo])
+            self.__create_repo(self.__repo_destdir[repo])
 
-    def createRepos(self, destDir):
-        listDirRepo = os.listdir( destDir)
-        for dirRepo in listDirRepo:
-            self.__createRepo( os.path.join( destDir, dirRepo))
+    def __create_repo(self, destDir):
+        '''
+        Create or update rpm a repository
+        '''
+        cmd_createrepo = "createrepo_c"
+        if shutil.which(cmd_createrepo) is None:
+            cmd_createrepo = "createrepo"
+        if shutil.which(cmd_createrepo) is None:
+            print("Can't find tool %s, please install it." % cmd_createrepo)
+            exit(1)
 
-    def __createRepo(self, destDir):
-        cmd_repo="createrepo_c %s" % (destDir)
+        cmd_repo = "%s %s" % (cmd_createrepo, destDir)
         args = shlex.split(cmd_repo)
-        subRes=subprocess.check_output(args)
+        subprocess.check_output(args)
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
+    parser.add_argument("-v", "--verbose",
+                        help="increase output verbosity", action="store_true")
     parser.add_argument("-i", "--input", help="yocto rpm sources")
     parser.add_argument("-o", "--output", help="RPM repository destination")
-    parser.add_argument("-a", "--output-auxilaire", help="yocto repository auxiliary destination", action='append')
-    parser.add_argument("-l", "--lock-output-auxilaire", help="Do not publish rpm to auxilaire Repositories", action='store_true')
-    parser.add_argument("-m", "--remove-unused", help="remove unsed rpm during update", action='store_false')
-    parser.add_argument("-r", "--reponame", help="repository destination")
+    parser.add_argument("-m", "--remove-unused",
+                        help="remove unsed rpm during update", action='store_true')
 
     args = parser.parse_args()
-
     if args.input is None:
         print("input file is empty")
         exit(1)
     if args.output is None:
         print("output dir is empty")
         exit(1)
-    if args.reponame is None:
-        print("reponame dir is empty")
-        exit(1)
     if args.verbose:
         global VERBOSE
-        VERBOSE=True
+        VERBOSE = True
 
-    sr=RepositoriesSynchronizer(args.input, args.output, args.reponame, args.output_auxilaire, args.lock_output_auxilaire, args.remove_unused)
-    sr.syncRepository()
+    syr = RepositoriesSynchronizer(args.input, args.output, args.remove_unused)
+
+    syr.sync_repositories()
+
 
 if __name__ == '__main__':
     main()
-
