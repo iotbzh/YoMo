@@ -104,8 +104,7 @@ class SdkManager():
         self.__SDK_SYS = self.__SDK_ARCH + self.__SDK_VENDOR + "-" + self.__SDK_OS
         self.__SDKPATHNATIVE = self.__SDKSYSROOT + "/" + self.__SDK_SYS
 
-        self.__NATIVE_SYSROOT_SETUP = "/opt/" + self.__DISTRO + "/" + self.__SDK_VERSION
-        self.__NATIVE_SYSROOT_SETUP_ALIAS = "/opt/" + self.__DISTRO + "/current"
+        self.__NATIVE_SYSROOT_SETUP = self.__getSdkConf("SDKPATH")
         self.__SDK_NATIVE_SUBSYSROOT = self.__NATIVE_SYSROOT_SETUP + "/sysroots/" + self.__SDK_SYS
 
         self.__SDKPATHNATIVE_DNF_LOG = self.__SDKSYSROOT_LOG + "/" + self.__SDK_SYS + "/log"
@@ -114,14 +113,10 @@ class SdkManager():
 
         self.__createPath(self.__SDKTARGETSYSROOT)
         self.__createPath(self.__SDKPATHNATIVE)
-        self.__NATIVE_SUBSYSROOT_DIR = self.__SDKPATHNATIVE + \
-            self.__NATIVE_SYSROOT_SETUP + "/sysroots"
+        self.__NATIVE_SUBSYSROOT_DIR = self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP + "/sysroots"
         self.__createPath(self.__NATIVE_SUBSYSROOT_DIR)
-        self.__createPath(os.path.dirname(
-            self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP_ALIAS))
-        os.symlink(os.path.relpath(self.__SDKPATHNATIVE, self.__NATIVE_SUBSYSROOT_DIR),
-                   self.__SDKPATHNATIVE + self.__SDK_NATIVE_SUBSYSROOT)
-        os.symlink(os.path.relpath(self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP, os.path.dirname(self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP_ALIAS)), self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP_ALIAS)
+        self.__createPath(os.path.dirname(self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP))
+        os.symlink(os.path.relpath(self.__SDKPATHNATIVE, self.__NATIVE_SUBSYSROOT_DIR), self.__SDKPATHNATIVE + self.__SDK_NATIVE_SUBSYSROOT)
 
         self.__createPath(self.__SDKTARGETSYSROOT_DNF_LOG)
         self.__createPath(self.__SDKPATHNATIVE_DNF_LOG)
@@ -145,7 +140,7 @@ class SdkManager():
             with open(SYSROOT + "/usr/lib/rpm/macros", "w") as f:
                 f.write("%_var /var\n")
                 f.write("%_dbpath %{_var}/lib/rpm\n")
-                f.write("%_rpmlock_path	%{_dbpath}/.rpm.lock\n")
+                f.write("%_rpmlock_path %{_dbpath}/.rpm.lock\n")
 
         for script in ['toolchain-shar-relocate.sh', 'relocate_sdk.py']:
             path = shutil.which(script)
@@ -247,7 +242,7 @@ class SdkManager():
             f.write("export DEFAULT_INSTALL_DIR=" + self.__SDK_NATIVE_SUBSYSROOT + "\n")
             f.write("bash " + self.__SDK_PATH + "/toolchain-shar-relocate.sh\n")
             f.write("export native_sysroot=${SDKPATHNATIVE}\n")
-            postInstallFix = r'''
+            postInstallFix = '''
 for replace in ${SDKPATHNATIVE}; do
         $SUDO_EXEC find $replace -type f
 done | xargs -n100 file | grep ":.*\(ASCII\|script\|source\).*text" | \\
@@ -278,14 +273,13 @@ done | xargs -n100 file | grep ":.*\(ASCII\|script\|source\).*text" | \\
 
             f.write("export PATH=\"%s\"\n" % PATH)
             f.write("export CONFIG_SITE=\"%s\"\n" % (self.__SDKPATHNATIVE +
-                                                     self.__NATIVE_SYSROOT_SETUP_ALIAS + "/site-config-" + self.__REAL_MULTIMACH_TARGET_SYS))
+                                                     self.__NATIVE_SYSROOT_SETUP + "/site-config-" + self.__REAL_MULTIMACH_TARGET_SYS))
             f.write("export OECORE_NATIVE_SYSROOT=\"%s\"\n" %
                     self.__SDKPATHNATIVE)
             f.write("export OECORE_ACLOCAL_OPTS=\"%s\"\n" %
                     ("-I " + self.__SDKPATHNATIVE + "/usr/share/aclocal"))
             f.write("unset LD_LIBRARY_PATH\n")
-            NATIVE_SYSROOT_ENV = self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP_ALIAS + \
-                "/yomo-environment-setup-" + self.__REAL_MULTIMACH_TARGET_SYS
+            NATIVE_SYSROOT_ENV = self.__SDKPATHNATIVE + self.__NATIVE_SYSROOT_SETUP + "/yomo-environment-setup-" + self.__REAL_MULTIMACH_TARGET_SYS
             f.write("source %s\n" % NATIVE_SYSROOT_ENV)
 
 

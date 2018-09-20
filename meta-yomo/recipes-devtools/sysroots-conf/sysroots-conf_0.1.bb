@@ -36,6 +36,7 @@ do_install_class-nativesdk() {
         "HOST_SYS":       "${HOST_SYS}",
         "SDK_VENDOR":     "${SDK_VENDOR}",
         "SDK_VERSION":    "${SDK_VERSION}",
+        "SDKPATH":        "${SDKPATH}",
         "SDK_OS":         "${SDK_OS}",
         "DISTRO":         "${DISTRO}",
         "DISTRO_CODENAME":"${DISTRO_CODENAME}",
