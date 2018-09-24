@@ -10,17 +10,8 @@ import xml.etree.ElementTree as ET
 import gzip
 import tempfile
 
-global VERBOSE
+
 VERBOSE = False
-
-
-def checkDir(aPath):
-    '''
-    Check a directory, exit((1) if not exist
-    '''
-    if not os.path.isdir(aPath):
-        print("path ", aPath, " is not a valid directory")
-        exit(1)
 
 
 def get_src_name(rpm_name):
@@ -29,11 +20,11 @@ def get_src_name(rpm_name):
     '''
     pattern_rpm = re.compile(
         r'^([\w\.\-\+]*)\-([\w\.\-\+]*)\-([\w\.]*)\.(\w*).rpm')
-    searchRes = pattern_rpm.search(rpm_name)
-    if searchRes is None:
+    search_res = pattern_rpm.search(rpm_name)
+    if search_res is None:
         print("ERROR: The file %s is not a rpm format file" % rpm_name)
     else:
-        result = searchRes.groups()
+        result = search_res.groups()
         return result[0]
     return None
 
@@ -75,11 +66,11 @@ class Package:
         '''
         Publish rpm file from repository source
         '''
-        dstFile = os.path.join(repo_destdir, self.__location)
-        dstFile_dir = os.path.dirname(dstFile)
-        if not os.path.exists(dstFile_dir):
-            os.makedirs(dstFile_dir)
-        shutil.copyfile(os.path.join(repo_srcdir, self.__location), dstFile)
+        dst_file = os.path.join(repo_destdir, self.__location)
+        dst_file_dir = os.path.dirname(dst_file)
+        if not os.path.exists(dst_file_dir):
+            os.makedirs(dst_file_dir)
+        shutil.copyfile(os.path.join(repo_srcdir, self.__location), dst_file)
 
     def remove_rpm(self, repo_dir):
         '''
@@ -90,12 +81,12 @@ class Package:
             print("ERROR: the file %s do not exist" % rpm_file)
         os.remove(rpm_file)
 
-    def check_if_update_is_needed(self, repo_srcdir, dstFile):
+    def check_if_update_is_needed(self, repo_srcdir, dst_file):
         '''
         Compare two rpm file and find if some real binary difference exist
         '''
         cmd_check_diff = "pkg-diff.sh %s %s" % (
-            os.path.join(repo_srcdir, self.__location), dstFile)
+            os.path.join(repo_srcdir, self.__location), dst_file)
         args = shlex.split(cmd_check_diff)
         res = subprocess.run(args, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -107,7 +98,7 @@ class Package:
 
 class PackageSource:
     def __init__(self, name, repository_path):
-        self.__binPackage = []
+        self.__bin_packages = []
         self.__repository_path = repository_path
         self.__name = name
         self.__version = None
@@ -128,14 +119,14 @@ class PackageSource:
         '''
         Add a new package
         '''
-        self.__binPackage.append(package)
+        self.__bin_packages.append(package)
 
     def get_version(self):
         '''
         Return the version "${version}-${revision}" of the package
         '''
         if self.__version is None:
-            for pkg in self.__binPackage:
+            for pkg in self.__bin_packages:
                 ver = pkg.get_version()
                 if self.__version is None:
                     self.__version = ver
@@ -151,13 +142,13 @@ class PackageSource:
         '''
         Return the list of package
         '''
-        return self.__binPackage
+        return self.__bin_packages
 
     def get_package(self, name):
         '''
         return the package with the given rpm name
         '''
-        for pkg in self.__binPackage:
+        for pkg in self.__bin_packages:
             if pkg.get_name() == name:
                 return pkg
         return None
@@ -166,7 +157,7 @@ class PackageSource:
         '''
         Publish the rpm files from repository source
         '''
-        for pkg in self.__binPackage:
+        for pkg in self.__bin_packages:
             pkg.publish(self.__repository_path, repo_destdir)
 
     def remove(self):
@@ -174,7 +165,7 @@ class PackageSource:
         Clean repository
         Should only be used for destination
         '''
-        for pkg in self.__binPackage:
+        for pkg in self.__bin_packages:
             pkg.remove_rpm(self.__repository_path)
 
 
@@ -184,7 +175,9 @@ class RepositoriesSynchronizer:
         self.__outputdir = outputdir
         self.__remove_unused = remove_unused
 
-        checkDir(self.__inputdir)
+        if not os.path.isdir(self.__inputdir):
+            print("path ", self.__inputdir, " is not a valid directory")
+            exit(1)
 
         self.__dico_repo_type = {}
         self.__dico_repo_type["nativesdk"] = "nativesdk"
@@ -203,11 +196,11 @@ class RepositoriesSynchronizer:
         '''
         Make a direct copy of the repository
         '''
-        listArchDir = os.listdir(self.__inputdir)
+        list_arch_dir = os.listdir(self.__inputdir)
         # The rpm files are store two level after the input dir directory
-        for archDir in listArchDir:
+        for arch_dir in list_arch_dir:
             # We need to separate cross compile packages and SDK packages
-            if "sdk" in archDir:
+            if "sdk" in arch_dir:
                 dir_type = self.__dico_repo_type["nativesdk"]
             else:
                 dir_type = self.__dico_repo_type["runtime"]
@@ -216,14 +209,13 @@ class RepositoriesSynchronizer:
                 if not os.path.isdir(repo_destdir):
                     os.makedirs(repo_destdir, exist_ok=True)
 
-                dest_repo = os.path.join(repo_destdir, archDir)
+                dest_repo = os.path.join(repo_destdir, arch_dir)
 
                 if os.path.isdir(dest_repo):
                     print("path ", dest_repo, " already exist")
                     exit(1)
 
-                shutil.copytree(os.path.join(
-                    self.__inputdir, archDir), dest_repo)
+                shutil.copytree(os.path.join(self.__inputdir, arch_dir), dest_repo)
 
     def check_if_update_is_needed(self, src_rpm, dest_rpm):
         '''
@@ -249,34 +241,31 @@ class RepositoriesSynchronizer:
             print("WARNING the %s version %s is older than %s and not be update." % (
                 dest_rpm.get_name(), src_rpm.get_version(), dest_rpm.get_version()))
 
-    def __check_rpm_2_update(self, src_rpm_pkg, dest_rpm_pkg, repo_destdir):
+    def __check_rpm_2_update(self, src_rpm_pkgs, dest_rpm_pkgs, repo_destdir):
         '''
         Check all package for an update
         '''
-        src_rpm = src_rpm_pkg.keys()
-        dest_rpm = dest_rpm_pkg.keys()
+        src_rpms = src_rpm_pkgs.keys()
+        dest_rpms = dest_rpm_pkgs.keys()
         if self.__remove_unused:
-            unused_pkg = set(dest_rpm) - set(src_rpm)
-            for pkg in unused_pkg:
-                dest_rpm_pkg[pkg].remove()
+            unused_pkgs = set(dest_rpms) - set(src_rpms)
+            for pkg in unused_pkgs:
+                dest_rpm_pkgs[pkg].remove()
 
-        new_pkg = set(src_rpm) - set(dest_rpm)
-        for pkg in new_pkg:
-            src_rpm_pkg[pkg].publish(repo_destdir)
+        new_pkgs = set(src_rpms) - set(dest_rpms)
+        for pkg in new_pkgs:
+            src_rpm_pkgs[pkg].publish(repo_destdir)
 
-        common_pkg = set(src_rpm) & set(dest_rpm)
-        total_pkg = len(common_pkg)
-        number_check = 0
+        common_pkgs = set(src_rpms) & set(dest_rpms)
+        total_pkgs = len(common_pkgs)
         ERASE_LINE = '\x1b[2K'
-        if VERBOSE:
-            print("check rpm to update %s/%s " % (number_check, total_pkg), end="\r")
-        for pkg in common_pkg:
-            number_check += 1
-            if VERBOSE:
-                print("check rpm %s to update %s/%s " % (pkg, number_check, total_pkg), end="\r")
-            self.check_package(src_rpm_pkg[pkg], dest_rpm_pkg[pkg], repo_destdir)
+        for i, pkg in enumerate(common_pkgs):
             if VERBOSE:
                 print(ERASE_LINE, end="\r")
+                print("check rpm %s to update %i/%i " % (pkg, i+1, total_pkgs), end="\r")
+            self.check_package(src_rpm_pkgs[pkg], dest_rpm_pkgs[pkg], repo_destdir)
+        if VERBOSE:
+            print("\nrpm check done.")
 
     def __get_primary_path(self, repository_path):
         '''
@@ -300,13 +289,11 @@ class RepositoriesSynchronizer:
         xml = None
         rpm_namespaces = {}
 
-        from xml.etree import ElementTree
         with gzip.open(xml_path, 'rb') as xml_file:
-            for event, elem in ElementTree.iterparse(xml_file, ('start', 'start-ns')):
+            for event, elem in ET.iterparse(xml_file, ('start', 'start-ns')):
                 if event == 'start-ns':
                     if elem[0] in rpm_namespaces and rpm_namespaces[elem[0]] != elem[1]:
-                        raise KeyError(
-                            "Duplicate prefix with different URI found.")
+                        raise KeyError("Duplicate prefix with different URI found.")
                     rpm_namespaces[str(elem[0])] = elem[1]
                 elif event == 'start':
                     if xml is None:
@@ -319,10 +306,8 @@ class RepositoriesSynchronizer:
         Get a package from a xml element
         '''
         rpm_name = rpm_element.find('{%s}name' % rpm_namespace['']).text
-        rpm_version = rpm_element.find(
-            '{%s}version' % rpm_namespace['']).attrib
-        location = rpm_element.find(
-            '{%s}location' % rpm_namespace['']).attrib['href']
+        rpm_version = rpm_element.find('{%s}version' % rpm_namespace['']).attrib
+        location = rpm_element.find('{%s}location' % rpm_namespace['']).attrib['href']
         format = rpm_element.find('{%s}format' % rpm_namespace[''])
         sourcerpm = format.find('{%s}sourcerpm' % rpm_namespace['rpm']).text
 
@@ -365,13 +350,13 @@ class RepositoriesSynchronizer:
         Synchronize all repositories
         '''
         if VERBOSE:
-            print("Start repositories synchronisation")
+            print("Start repositories synchronisation... ", end='')
 
         for repo in self.__dico_repo_type:
             self.sync_repository(repo)
 
         if VERBOSE:
-            print("Create output repositories done")
+            print("Done.")
 
     def sync_repository(self, repo):
         '''
@@ -380,32 +365,28 @@ class RepositoriesSynchronizer:
         is_repo_new = not os.path.isdir(self.__repo_destdir[repo])
         if is_repo_new:
             if VERBOSE:
-                print("The repository %s do not exit. Create it, if necessary." % self.__repo_destdir[repo])
+                print("The repository %s does not exit. It will be created (if necessary)." % self.__repo_destdir[repo])
             self.__direct_copy_repo(repo, self.__repo_destdir[repo])
         else:
             if not os.path.isfile(os.path.join(self.__repo_destdir[repo], "repodata", "repomd.xml")):
-                print("The directory %s is not a rpm repository" %
-                      self.__repo_destdir[repo])
+                print("The directory %s is not a rpm repository" % self.__repo_destdir[repo])
             else:
                 if VERBOSE:
-                    print("Scan output repositories")
-                self.__dest_rpm_pkg[repo] = self.__scan_repository(
-                    self.__repo_destdir[repo])
+                    print("Scan output repositories...")
+                self.__dest_rpm_pkg[repo] = self.__scan_repository(self.__repo_destdir[repo])
                 tmpdirname = tempfile.mkdtemp()
                 self.__direct_copy_repo(repo, tmpdirname)
                 self.__create_repo(tmpdirname)
                 if VERBOSE:
-                    print("Scan input repository")
+                    print("Scan input repository...")
                 self.__src_rpm_pkg[repo] = self.__scan_repository(tmpdirname)
                 if VERBOSE:
-                    print("Check for update needed")
-                self.__check_rpm_2_update(
-                    self.__src_rpm_pkg[repo], self.__dest_rpm_pkg[repo], self.__repo_destdir[repo])
+                    print("Check for update needed...")
+                self.__check_rpm_2_update(self.__src_rpm_pkg[repo], self.__dest_rpm_pkg[repo], self.__repo_destdir[repo])
                 shutil.rmtree(tmpdirname)
         if os.path.isdir(self.__repo_destdir[repo]):
             if VERBOSE:
-                print("Create repository config file in %s" %
-                        self.__repo_destdir[repo])
+                print("Create repository config file in %s" % self.__repo_destdir[repo])
             self.__create_repo(self.__repo_destdir[repo])
 
     def __create_repo(self, destDir):
@@ -426,12 +407,10 @@ class RepositoriesSynchronizer:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--verbose",
-                        help="increase output verbosity", action="store_true")
+    parser.add_argument("-v", "--verbose", help="increase output verbosity", action="store_true")
     parser.add_argument("-i", "--input", help="yocto rpm sources")
     parser.add_argument("-o", "--output", help="RPM repository destination")
-    parser.add_argument("-m", "--remove-unused",
-                        help="remove unsed rpm during update", action='store_true')
+    parser.add_argument("-m", "--remove-unused", help="remove unsed rpm during update", action='store_true')
 
     args = parser.parse_args()
     if args.input is None:

@@ -11,16 +11,14 @@ import shlex
 import stat
 import json
 
-global VERBOSE
+
 VERBOSE = False
 
-repo_template = "[%s] \n\
-name=%s \n\
-baseurl=%s \n\
-enabled=1\n"
-
-
 def getRepo(targetRepo, baseurl):
+    repo_template = """[%s]
+name=%s
+baseurl=%s
+enabled=1"""
     return repo_template % (targetRepo, targetRepo, baseurl)
 
 
@@ -29,6 +27,7 @@ class SdkManager():
         self._outputDir = os.path.abspath(outputDir)
 
         self._initConf = {}
+        self.__SDK_BOOTSTRAP = None
         self.__initInPutJson(inputFiles)
 
         self.__checkSdkBootStrap()
@@ -41,18 +40,15 @@ class SdkManager():
         self.__createInitEnv()
 
     def __checkSdkBootStrap(self):
-        self.__SDK_BOOTSTRAP = None
-
         if 'SDK_BOOTSTRAP' in os.environ:
             self.__SDK_BOOTSTRAP = os.environ['SDK_BOOTSTRAP']
-
-        if self.__SDK_BOOTSTRAP is None:
+        else:
             print("ERROR: SDK_BOOTSTRAP is not define in the environement.")
             print("ERROR: please source SDK bootstrap environement before init your SDK.")
             exit(1)
 
-    def __initInPutJson(self, inputFile):
-        for jsonFile in inputFile:
+    def __initInPutJson(self, inputFiles):
+        for jsonFile in inputFiles:
             with open(jsonFile, "r") as infile:
                 self._initConf.update(json.load(infile))
 
