@@ -20,8 +20,8 @@ You can find [here](doc/build_YoMo_image.md) some helpful documentation.
 
 ## Create rpm repositories
 
-You can find [here](YoMo_repositories.md) the YoMo documentation about rpm repositories creation.
+You can find [here](doc/YoMo_repositories.md) the YoMo documentation about rpm repositories creation.
 
 ## Create YoMo SDK
 
-You can find [here](YoMo_SDK.md) the YoMo documentation about YoMo SDK.
+You can find [here](doc/YoMo_SDK.md) the YoMo documentation about YoMo SDK.
