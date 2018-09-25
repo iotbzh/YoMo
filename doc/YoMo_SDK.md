@@ -66,7 +66,7 @@ Init your sdk-bootstrap:
 export PATH=${BOOTSTRAP_INSTALL}/sysroots/x86_64-aglsdk-linux/usr/bin:$PATH
 ```
 
-Note: You can add this line to your bachrc.
+Note: You can add this line to your bashrc.
 
 Or:
 
@@ -99,10 +99,6 @@ Init native sysroot:
 cd /xdt/sdk-yomo/${ARCH}-sdk/
 ./dnf4Native install packagegroup-cross-canadian-*
 ```
-
-=======> cd /xdt/sdk-yomo/myProject-sdk/
-
-=======> pb avec génération ./dnf4Native cf init-sdk-rootfs.py
 
 Native tool:
 
