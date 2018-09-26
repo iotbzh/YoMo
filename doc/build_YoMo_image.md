@@ -6,7 +6,7 @@ setup your working directory:
 ```bash
 WORKDIR="/xdt/workdir-agl-yomo"
 mkdir -p ${WORKDIR}
-mkdir -p "${WORKDIR}/meta" "${WORKDIR}/build"
+mkdir -p "${WORKDIR}/meta"
 ```
 
 ## For AGL project
@@ -37,7 +37,8 @@ Note : You can choose another source release [Here](http://docs.automotivelinux.
 
 ```bash
 MACHINE="m3ulcb"
-cd "${WORKDIR}/build"
+mkdir -p "${WORKDIR}/build_${MACHINE}"
+cd "${WORKDIR}/build_${MACHINE}"
 source ${WORKDIR}/meta/meta-agl/scripts/aglsetup.sh -m ${MACHINE} -b yomo agl-devel agl-demo agl-netboot agl-appfw-smack agl-localdev
 . agl-init-build-env
 ```
@@ -67,16 +68,12 @@ source ${WORKDIR}/meta/poky/oe-init-build-env yomo
 * Edit your file
 
 ```bash
-vim ${WORKDIR}/build/yomo/conf/bblayers.conf
-```
+cat << EOF >> ${WORKDIR}/build/yomo/conf/bblayers.conf
 
-* And add line
-
-```bash
 BBLAYERS += "${WORKDIR}/meta/YoMo/meta-yomo"
-```
 
-Note: You must replace ${WORKDIR} by your path ${WORKDIR}/meta
+EOF
+```
 
 * If you use meta-qt5 add:
 
@@ -89,7 +86,7 @@ BBLAYERS += "${WORKDIR}/meta/YoMo/meta-qt5-yomo"
 ### For AGL
 
 ```bash
-cd "${WORKDIR}/build/yomo"
+cd "${WORKDIR}/build_${MACHINE}/yomo"
 source agl-init-build-env
 bitbake agl-demo-platform-crosssdk -k
 ```
