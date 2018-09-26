@@ -14,7 +14,7 @@ mkdir -p "${WORKDIR}/meta" "${WORKDIR}/build"
 > At first you need to initialize your AGL project source.
 [Documentation](http://docs.automotivelinux.org/docs/getting_started/en/dev/reference/source-code.html)
 
-Here a quick documentation (but read the official documenttation first)
+Here a quick documentation (but read the official documentation first)
 
 ```bash
 mkdir -p ~/bin
@@ -73,7 +73,7 @@ vim ${WORKDIR}/build/yomo/conf/bblayers.conf
 * And add line
 
 ```bash
-BBLAYERS += "${METADIR}/YoMo/meta-yomo"
+BBLAYERS += "${WORKDIR}/meta/YoMo/meta-yomo"
 ```
 
 Note: You must replace ${WORKDIR} by your path ${WORKDIR}/meta
@@ -81,7 +81,7 @@ Note: You must replace ${WORKDIR} by your path ${WORKDIR}/meta
 * If you use meta-qt5 add:
 
 ```bash
-BBLAYERS += "${METADIR}/YoMo/meta-qt5-yomo"
+BBLAYERS += "${WORKDIR}/meta/YoMo/meta-qt5-yomo"
 ```
 
 ## Build your project

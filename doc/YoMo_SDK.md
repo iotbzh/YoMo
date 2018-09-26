@@ -10,16 +10,31 @@ Publish your SDK boot strap
 
 ```bash
 export SDK_BS_DIR="sdk-bootstrap"
-mkdir -p ${SRV_DIR}/${SDK_BS_DIR}
+mkdir -p ${YOMO_SRV_DIR}/${SDK_BS_DIR}
 export SDK_INSTALL_SCRIPT=$(basename $(ls tmp/deploy/sdk/x86_64-sdk-bootstrap-*.sh))
-cp tmp/deploy/sdk/${SDK_INSTALL_SCRIPT} ${SRV_DIR}/${SDK_BS_DIR}
+cp tmp/deploy/sdk/${SDK_INSTALL_SCRIPT} ${YOMO_SRV_DIR}/${SDK_BS_DIR}
 ```
+
+## Check needed environment variables
+
+```bash
+echo ${ARCH}
+echo ${PUBDIR}
+```
+
+If unset, see [here](YoMo_repositories.md)
+
+```bash
+echo ${YOMO_SRV_DIR}
+```
+
+If unset, see [here](YoMo_http_server.md)
 
 ## Publish repositories config file
 
 ```bash
 export YOUR_HTTP_SRV="your_http_server"
-cat >${SRV_DIR}/${SDK_BS_DIR}/SDK-configuration.json<<EOF
+cat >${YOMO_SRV_DIR}/${SDK_BS_DIR}/SDK-configuration.json<<EOF
 {
     "repo":{
         "runtime":{
@@ -43,8 +58,8 @@ bitbake sysroots-conf nativesdk-sysroots-conf -c install
 Publish SDK config files:
 
 ```bash
-cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/*/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${SRV_DIR}/${SDK_BS_DIR}
-cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${SRV_DIR}/${SDK_BS_DIR}
+cp tmp/work/x86_64-nativesdk-*-linux/nativesdk-sysroots-conf/0.1-r0/image/opt/*/*/sysroots/x86_64-*-linux/usr/share/sdk_default.json ${YOMO_SRV_DIR}/${SDK_BS_DIR}
+cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${YOMO_SRV_DIR}/${SDK_BS_DIR}
 ```
 
 ## Init your SDK bootstrap

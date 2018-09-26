@@ -52,28 +52,44 @@ sudo chmod 440 /etc/ssl/certs/yomo.crt
 
 ## Configure apache server
 
+Configure some parameter using environment variables:
+
 ```bash
 export USER_EMAIL="ronan.lemartret@iot.bzh"
-export SRV_DIR="/home/devel/share/http_svr/data"
-export SRV_LOG="/home/devel/share/http_svr/log"
+export YOMO_SRV_DIR="/home/devel/share/http_svr/data"
+export YOMO_SRV_LOG="/home/devel/share/http_svr/log"
+```
 
-sudo mkdir -p ${SRV_DIR} ${SRV_LOG}
+Make the variable pointing to the content location persistent:
+
+```bash
+cat << EOF >> ~/.bashrc
+
+export YOMO_SRV_DIR=${YOMO_SRV_DIR}
+export YOMO_SRV_LOG=${YOMO_SRV_LOG}
+EOF
+```
+
+Create the server content location directory and configuration files:
+
+```bash
+sudo mkdir -p ${YOMO_SRV_DIR} ${YOMO_SRV_LOG}
 
 sudo bash -c "cat << EOF > /etc/apache2/sites-available/http_yomo.conf
 <VirtualHost *:80>
     ServerAdmin ${USER_EMAIL}
     ServerName http_yomo
-    DocumentRoot ${SRV_DIR}
+    DocumentRoot ${YOMO_SRV_DIR}
     <Directory />
         Options FollowSymLinks
         AllowOverride None
     </Directory>
-    <Directory ${SRV_DIR}>
+    <Directory ${YOMO_SRV_DIR}>
         Options Indexes MultiViews
         AllowOverride None
         Require all granted
     </Directory>
-    ErrorLog ${SRV_LOG}/error.log
+    ErrorLog ${YOMO_SRV_LOG}/error.log
     LogLevel warn
 </VirtualHost>
 EOF"
@@ -82,7 +98,7 @@ sudo bash -c "cat << EOF > /etc/apache2/sites-available/https_yomo.conf
 <VirtualHost *:443>
     ServerAdmin ${USER_EMAIL}
     ServerName https_yomo
-    DocumentRoot ${SRV_DIR}
+    DocumentRoot ${YOMO_SRV_DIR}
     <Directory />
         SSLRequireSSL
         Options FollowSymLinks
@@ -96,20 +112,24 @@ sudo bash -c "cat << EOF > /etc/apache2/sites-available/https_yomo.conf
   SSLCertificateFile /etc/ssl/certs/yomo.crt
   SSLCertificateKeyFile /etc/ssl/private/yomo.key
 
-    <Directory ${SRV_DIR}>
+    <Directory ${YOMO_SRV_DIR}>
         Options Indexes MultiViews
         AllowOverride None
         Require all granted
     </Directory>
-    ErrorLog ${SRV_LOG}/error.log
+    ErrorLog ${YOMO_SRV_LOG}/error.log
     LogLevel warn
 </VirtualHost>
 EOF"
 ```
 
+Remove default configuration file:
+
 ```bash
 sudo rm /etc/apache2/sites-enabled/000-default.conf
 ```
+
+Submit the config and restart the server:
 
 ```bash
 sudo a2ensite http_yomo.conf
