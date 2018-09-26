@@ -34,7 +34,7 @@ If unset, see [here](YoMo_http_server.md)
 
 ```bash
 export YOUR_HTTP_SRV="your_http_server"
-cat >${YOMO_SRV_DIR}/${SDK_BS_DIR}/SDK-configuration.json<<EOF
+cat >${YOMO_SRV_DIR}/${SDK_BS_DIR}/SDK-configuration-${ARCH}.json<<EOF
 {
     "repo":{
         "runtime":{
@@ -64,12 +64,12 @@ cp tmp/work/*/sysroots-conf/0.1-r0/image/usr/share/*_default.json ${YOMO_SRV_DIR
 
 ## Init your SDK bootstrap
 
-At first download and install the sdk-bootstrap
+At first download and install the sdk-bootstrap:
 
 ```bash
-mkdir -p /xdt/sdk-config
-cd /xdt/sdk-config
-export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap
+mkdir -p /xdt/sdk-config-${ARCH}
+cd /xdt/sdk-config-${ARCH}
+export BOOTSTRAP_INSTALL=/xdt/sdk-bootstrap-${ARCH}
 wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/${SDK_INSTALL_SCRIPT}
 chmod a=x ./${SDK_INSTALL_SCRIPT}
 sudo ./${SDK_INSTALL_SCRIPT} -d ${BOOTSTRAP_INSTALL} -y
@@ -81,7 +81,14 @@ Init your sdk-bootstrap:
 export PATH=${BOOTSTRAP_INSTALL}/sysroots/x86_64-aglsdk-linux/usr/bin:$PATH
 ```
 
-Note: You can add this line to your bashrc.
+**Note**: You can add this line to your bashrc:
+
+```bash
+cat << EOF >> ~/.bashrc
+
+export PATH=${BOOTSTRAP_INSTALL}/sysroots/x86_64-aglsdk-linux/usr/bin:\$PATH
+EOF
+```
 
 Or:
 
@@ -94,8 +101,8 @@ source ${BOOTSTRAP_INSTALL}/environment-setup-x86_64-*-linux
 ### Download repositories config files
 
 ```bash
-cd /xdt/sdk-config
-wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/SDK-configuration.json
+cd /xdt/sdk-config-${ARCH}
+wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/SDK-configuration-${ARCH}.json
 wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/${ARCH}_default.json
 wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/sdk_default.json
 ```
@@ -103,7 +110,7 @@ wget http://${YOUR_HTTP_SRV}/${SDK_BS_DIR}/sdk_default.json
 ### Create your SDK
 
 ```bash
-init-sdk-rootfs -i ${ARCH}_default.json -i SDK-configuration.json -i sdk_default.json -o /xdt/sdk-yomo
+init-sdk-rootfs -i ${ARCH}_default.json -i SDK-configuration-${ARCH}.json -i sdk_default.json -o /xdt/sdk-yomo
 ```
 
 ### Update your SDK
